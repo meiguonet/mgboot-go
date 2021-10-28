@@ -3,7 +3,7 @@ package httpx
 import (
 	"fmt"
 	"github.com/go-errors/errors"
-	"github.com/meiguonet/mgboot-go"
+	"github.com/meiguonet/mgboot-go-common/logx"
 	"github.com/meiguonet/mgboot-go-common/util/castx"
 	"github.com/meiguonet/mgboot-go-common/util/slicex"
 	"github.com/meiguonet/mgboot-go-common/util/stringx"
@@ -26,6 +26,7 @@ type Response struct {
 	extraHeaders      map[string]string
 	exceptionHandlers []ExceptionHandler
 	corsSettings      *securityx.CorsSettings
+	logger            logx.Logger
 }
 
 func NewResponse(request *Request, out http.ResponseWriter) *Response {
@@ -33,13 +34,14 @@ func NewResponse(request *Request, out http.ResponseWriter) *Response {
 		request:           request,
 		out:               out,
 		extraHeaders:      map[string]string{},
-		exceptionHandlers: mgboot.ExceptionHandlers(),
+		exceptionHandlers: make([]ExceptionHandler, 0),
 	}
 
-	if resp.needCorsSupport() {
-		resp.WithCorsSettings(mgboot.CorsSettings())
-	}
+	return resp
+}
 
+func (resp *Response) WithLogger(logger logx.Logger) *Response {
+	resp.logger = logger
 	return resp
 }
 
@@ -73,11 +75,31 @@ func (resp *Response) WithExtraHeaders(headers map[string]string) *Response {
 	return resp
 }
 
+func (resp *Response) WithExceptionHandler(handler ExceptionHandler) *Response {
+	resp.exceptionHandlers = append(resp.exceptionHandlers, handler)
+	return resp
+}
+
 func (resp *Response) WithExceptionHandlers(handlers []ExceptionHandler) *Response {
 	if len(handlers) > 0 {
 		resp.exceptionHandlers = append(resp.exceptionHandlers, handlers...)
 	}
 
+	return resp
+}
+
+func (resp *Response) ReplaceValidateExceptionHandler(handler ExceptionHandler) *Response {
+	handlers := make([]ExceptionHandler, 0)
+
+	for _, h := range resp.exceptionHandlers {
+		if h.GetExceptionName() == "builtin.ValidateException" {
+			handlers = append(handlers, handler)
+		} else {
+			handlers = append(handlers, h)
+		}
+	}
+
+	resp.exceptionHandlers = handlers
 	return resp
 }
 
@@ -336,9 +358,7 @@ func (resp *Response) sendString(contentType, contents string) {
 }
 
 func (resp *Response) writeErrorLog(arg0 interface{}) {
-	logger := mgboot.RuntimeLogger()
-
-	if logger ==  nil {
+	if resp.logger ==  nil {
 		return
 	}
 
@@ -354,7 +374,7 @@ func (resp *Response) writeErrorLog(arg0 interface{}) {
 		return
 	}
 
-	logger.Error(msg)
+	resp.logger.Error(msg)
 }
 
 func (resp *Response) getStacktrace(arg0 interface{}) string {

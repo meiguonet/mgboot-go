@@ -2,7 +2,6 @@ package BuiltinMiddleware
 
 import (
 	"fmt"
-	"github.com/meiguonet/mgboot-go"
 	"github.com/meiguonet/mgboot-go-common/logx"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
@@ -14,8 +13,7 @@ type requestLogMiddleware struct {
 	logger  logx.Logger
 }
 
-func NewRequestLogMiddleware() *requestLogMiddleware {
-	logger := mgboot.RequestLogLogger()
+func NewRequestLogMiddleware(logger logx.Logger) *requestLogMiddleware {
 	var enabled bool
 
 	if logger != nil {

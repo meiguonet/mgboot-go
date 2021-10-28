@@ -3,7 +3,6 @@ package httpx
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/meiguonet/mgboot-go"
 	"github.com/meiguonet/mgboot-go-common/enum/RegexConst"
 	"github.com/meiguonet/mgboot-go-common/util/castx"
 	"github.com/meiguonet/mgboot-go-common/util/jsonx"
@@ -23,18 +22,19 @@ import (
 )
 
 type Request struct {
-	rawRequest    *http.Request
-	method        string
-	headers       map[string]string
-	queryParams   map[string]string
-	formData      map[string]string
-	formFiles     map[string]*multipart.FileHeader
-	pathVariables map[string]string
-	rawBody       []byte
-	routeRule     *mvc.RouteRule
-	middlewares   []Middleware
-	execStart     time.Time
-	next          bool
+	rawRequest          *http.Request
+	method              string
+	headers             map[string]string
+	queryParams         map[string]string
+	formData            map[string]string
+	formFiles           map[string]*multipart.FileHeader
+	pathVariables       map[string]string
+	rawBody             []byte
+	routeRule           *mvc.RouteRule
+	middlewares         []Middleware
+	jwtPublicKeyPemFile string
+	execStart           time.Time
+	next                bool
 }
 
 func NewRequest(req *http.Request) *Request {
@@ -73,7 +73,7 @@ func NewRequest(req *http.Request) *Request {
 		}
 
 		if strings.Contains(strings.ToLower(headers["Content-Type"]), "multipart/form-data") {
-			req.ParseMultipartForm(mgboot.MaxBodySize())
+			req.ParseMultipartForm(MaxBodySize())
 
 			for name, entries := range req.MultipartForm.File {
 				if len(entries) < 0 {
@@ -94,7 +94,7 @@ func NewRequest(req *http.Request) *Request {
 		formFiles:     formFiles,
 		pathVariables: map[string]string{},
 		rawBody:       buildRawBody(method, headers["Content-Type"], formData, req),
-		middlewares:   mgboot.Middlewares(),
+		middlewares:   make([]Middleware, 0),
 		execStart:     time.Now(),
 		next:          true,
 	}
@@ -144,6 +144,11 @@ func buildRawBody(method, contentType string, formData map[string]string, req *h
 
 	req.Body.Close()
 	return body
+}
+
+func (r *Request) WithJwtPublicKeyPemFile(fpath string) *Request {
+	r.jwtPublicKeyPemFile = fpath
+	return r
 }
 
 func (r *Request) WithPathVariables(map1 map[string]string) *Request {
@@ -473,7 +478,7 @@ func (r *Request) GetJwt(token ...string) *jwt.Token {
 		return nil
 	}
 
-	tk, _ := securityx.ParseJsonWebToken(s1)
+	tk, _ := securityx.ParseJsonWebToken(s1, r.jwtPublicKeyPemFile)
 	return tk
 }
 

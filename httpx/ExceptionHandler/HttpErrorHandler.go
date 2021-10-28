@@ -1,7 +1,6 @@
 package BuiltinExceptionHandler
 
 import (
-	"github.com/meiguonet/mgboot-go"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
 	"github.com/meiguonet/mgboot-go/httpx"
 	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
@@ -15,7 +14,7 @@ func NewHttpErrorHandler() *httpErrorHandler {
 }
 
 func (h *httpErrorHandler) GetExceptionName() string {
-	return mgboot.GetBuiltintExceptionName("HttpError")
+	return "builtin.HttpErrorException"
 }
 
 func (h *httpErrorHandler) MatchException(err error) bool {

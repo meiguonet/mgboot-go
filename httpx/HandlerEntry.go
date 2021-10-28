@@ -2,16 +2,13 @@ package httpx
 
 import (
 	"github.com/meiguonet/mgboot-go/mvc"
-	"net/http"
 )
 
 type ActionFunc func(req *Request, resp *Response) (ResponsePayload, error)
-type HandlerFunc func(out http.ResponseWriter, req *http.Request, pathVariables map[string]string)
 
 type HandlerEntry struct {
 	routeRule   *mvc.RouteRule
 	actionFunc  ActionFunc
-	handlerFunc HandlerFunc
 }
 
 func NewHandlerEntry(routeRule *mvc.RouteRule) *HandlerEntry {
@@ -28,15 +25,23 @@ func (e *HandlerEntry) WithActionFunc(fn ActionFunc) *HandlerEntry {
 	return e
 }
 
-func (e *HandlerEntry) GetActionFunc() ActionFunc {
-	return e.actionFunc
-}
+func (e *HandlerEntry) HandleRequest(req *Request, resp *Response) {
+	var payload ResponsePayload
+	var err error
 
-func (e *HandlerEntry) WithHandlerFunc(fn HandlerFunc) *HandlerEntry {
-	e.handlerFunc = fn
-	return e
-}
+	defer func() {
+		if ex, ok := recover().(error); ok {
+			err = ex
+		}
+	}()
 
-func (e *HandlerEntry) HandleRequest(out http.ResponseWriter, req *http.Request, pathVariables map[string]string) {
-	e.handlerFunc(out, req, pathVariables)
+	payload, err = e.actionFunc(req, resp)
+
+	if err != nil {
+		resp.WithError(err)
+	} else {
+		resp.WithPayload(payload)
+	}
+
+	resp.Send()
 }

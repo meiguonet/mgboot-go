@@ -1,7 +1,6 @@
 package BuiltinExceptionHandler
 
 import (
-	"github.com/meiguonet/mgboot-go"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
 	"github.com/meiguonet/mgboot-go/httpx"
 	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
@@ -15,7 +14,7 @@ func NewAccessTokenExpiredHandler() *accessTokenExpiredHandler {
 }
 
 func (h *accessTokenExpiredHandler) GetExceptionName() string {
-	return mgboot.GetBuiltintExceptionName("AccessTokenExpired")
+	return "builtin.AccessTokenExpiredException"
 }
 
 func (h *accessTokenExpiredHandler) MatchException(err error) bool {

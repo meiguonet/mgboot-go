@@ -2,7 +2,6 @@ package BuiltinMiddleware
 
 import (
 	"fmt"
-	"github.com/meiguonet/mgboot-go"
 	"github.com/meiguonet/mgboot-go-common/logx"
 	"github.com/meiguonet/mgboot-go-common/util/numberx"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
@@ -16,8 +15,7 @@ type executeTimeLogMiddleware struct {
 	logger  logx.Logger
 }
 
-func NewExecuteTimeLogMiddleware() *executeTimeLogMiddleware {
-	logger := mgboot.ExecuteTimeLogLogger()
+func NewExecuteTimeLogMiddleware(logger logx.Logger) *executeTimeLogMiddleware {
 	var enabled bool
 
 	if logger != nil {

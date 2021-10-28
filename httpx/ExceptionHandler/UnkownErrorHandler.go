@@ -1,7 +1,6 @@
 package BuiltinExceptionHandler
 
 import (
-	"github.com/meiguonet/mgboot-go"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
 	"github.com/meiguonet/mgboot-go/httpx"
 	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
@@ -15,7 +14,7 @@ func NewUnkownErrorHandler() *unkownErrorHandler {
 }
 
 func (h *unkownErrorHandler) GetExceptionName() string {
-	return mgboot.GetBuiltintExceptionName("UnkownError")
+	return "built.UnkownErrorException"
 }
 
 func (h *unkownErrorHandler) MatchException(err error) bool {

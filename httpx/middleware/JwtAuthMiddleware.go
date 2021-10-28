@@ -1,7 +1,6 @@
 package BuiltinMiddleware
 
 import (
-	"github.com/meiguonet/mgboot-go"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
@@ -10,10 +9,11 @@ import (
 )
 
 type jwtAuthMiddleware struct {
+	settings *securityx.JwtSettings
 }
 
-func NewJwtAuthMiddleware() *jwtAuthMiddleware {
-	return &jwtAuthMiddleware{}
+func NewJwtAuthMiddleware(settings *securityx.JwtSettings) *jwtAuthMiddleware {
+	return &jwtAuthMiddleware{settings: settings}
 }
 
 func (m *jwtAuthMiddleware) GetName() string {
@@ -45,9 +45,7 @@ func (m *jwtAuthMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response) 
 		return
 	}
 
-	settings := mgboot.JwtSettings(key)
-
-	if settings == nil {
+	if m.settings == nil {
 		return
 	}
 
@@ -59,7 +57,7 @@ func (m *jwtAuthMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response) 
 		return
 	}
 
-	if err := securityx.VerifyJsonWebToken(token, settings); err != nil {
+	if err := securityx.VerifyJsonWebToken(token, m.settings); err != nil {
 		req.Next(false)
 		resp.WithError(err)
 	}

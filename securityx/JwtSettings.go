@@ -1,7 +1,6 @@
 package securityx
 
 import (
-	"github.com/meiguonet/mgboot-go"
 	"github.com/meiguonet/mgboot-go-common/util/castx"
 	"time"
 )
@@ -45,8 +44,8 @@ func NewJwtSettings(key string, settings map[string]interface{}) *JwtSettings {
 		issuer:            issuer,
 		ttl:               ttl,
 		refreshTokenTtl:   refreshTokenTtl,
-		publicKeyPemFile:  mgboot.JwtPublicKeyPemFile(),
-		privateKeyPemFile: mgboot.JwtPrivateKeyPemFile(),
+		publicKeyPemFile:  castx.ToString(settings["publicKeyPemFile"]),
+		privateKeyPemFile: castx.ToString(settings["privateKeyPemFile"]),
 	}
 }
 

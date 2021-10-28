@@ -2,7 +2,6 @@ package mvc
 
 import (
 	"github.com/meiguonet/mgboot-go-common/util/castx"
-	"github.com/meiguonet/mgboot-go/httpx"
 )
 
 type RouteRule struct {
@@ -14,7 +13,6 @@ type RouteRule struct {
 	validateRules     []string
 	failfast          bool
 	handlerFuncArgs   []HandlerFuncArgInfo
-	middlewares       []httpx.Middleware
 }
 
 func NewRouteRule(map1 map[string]interface{}) *RouteRule {
@@ -36,12 +34,6 @@ func NewRouteRule(map1 map[string]interface{}) *RouteRule {
 		handlerFuncArgs = a1
 	}
 
-	middlewares := make([]httpx.Middleware, 0)
-
-	if a1, ok := map1["middlewares"].([]httpx.Middleware); ok && len(a1) > 0 {
-		middlewares = a1
-	}
-
 	return &RouteRule{
 		httpMethod:        castx.ToString(map1["httpMethod"]),
 		requestMapping:    castx.ToString(map1["requestMapping"]),
@@ -51,7 +43,6 @@ func NewRouteRule(map1 map[string]interface{}) *RouteRule {
 		validateRules:     validateRules,
 		failfast:          castx.ToBool(map1["failfast"]),
 		handlerFuncArgs:   handlerFuncArgs,
-		middlewares:       middlewares,
 	}
 }
 
@@ -85,21 +76,4 @@ func (rr *RouteRule) IsFailfast() bool {
 
 func (rr *RouteRule) HandlerFuncArgs() []HandlerFuncArgInfo {
 	return rr.handlerFuncArgs
-}
-
-func (rr *RouteRule) WithMiddleware(m httpx.Middleware) *RouteRule {
-	rr.middlewares = append(rr.middlewares, m)
-	return rr
-}
-
-func (rr *RouteRule) WithMiddlewares(entries []httpx.Middleware) *RouteRule {
-	if len(entries) > 0 {
-		rr.middlewares = append(rr.middlewares, entries...)
-	}
-
-	return rr
-}
-
-func (rr *RouteRule) Middlewares() []httpx.Middleware {
-	return rr.middlewares
 }

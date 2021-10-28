@@ -1,7 +1,6 @@
 package BuiltinExceptionHandler
 
 import (
-	"github.com/meiguonet/mgboot-go"
 	"github.com/meiguonet/mgboot-go-common/util/jsonx"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
 	"github.com/meiguonet/mgboot-go/httpx"
@@ -16,7 +15,7 @@ func NewValidateHandler() *validateHandler {
 }
 
 func (h *validateHandler) GetExceptionName() string {
-	return mgboot.GetBuiltintExceptionName("Validate")
+	return "builtin.ValidateException"
 }
 
 func (h *validateHandler) MatchException(err error) bool {

@@ -1,7 +1,6 @@
 package BuiltinExceptionHandler
 
 import (
-	"github.com/meiguonet/mgboot-go"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
 	"github.com/meiguonet/mgboot-go/httpx"
 	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
@@ -15,7 +14,7 @@ func NewRequireAccessTokenHandler() *requireAccessTokenHandler {
 }
 
 func (h *requireAccessTokenHandler) GetExceptionName() string {
-	return mgboot.GetBuiltintExceptionName("RequireAccessToken")
+	return "builtin.RequireAccessTokenException"
 }
 
 func (h *requireAccessTokenHandler) MatchException(err error) bool {

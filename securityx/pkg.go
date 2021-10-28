@@ -4,15 +4,14 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-errors/errors"
-	"github.com/meiguonet/mgboot-go"
 	"github.com/meiguonet/mgboot-go-common/util/castx"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
 	"io/ioutil"
 	"time"
 )
 
-func ParseJsonWebToken(token string) (*jwt.Token, error) {
-	keyBytes := loadJwtPublicKeyPem(mgboot.JwtPublicKeyPemFile())
+func ParseJsonWebToken(token string, pubpem interface{}) (*jwt.Token, error) {
+	keyBytes := loadJwtPublicKeyPem(pubpem)
 
 	if len(keyBytes) < 1 {
 		return nil, errors.New("fail to load public key from pem file")
@@ -39,7 +38,7 @@ func VerifyJsonWebToken(arg0 interface{}, settings *JwtSettings) error {
 	if tk, ok := arg0.(*jwt.Token); ok {
 		token = tk
 	} else if s1, ok := arg0.(string); ok && s1 != "" {
-		tk, _ := ParseJsonWebToken(s1)
+		tk, _ := ParseJsonWebToken(s1, settings)
 		token = tk
 	}
 

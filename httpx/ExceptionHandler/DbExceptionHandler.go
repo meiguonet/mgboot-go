@@ -25,6 +25,6 @@ func (h *dbExceptionHandler) MatchException(err error) bool {
 	return false
 }
 
-func (h *dbExceptionHandler) HandleException(err error) httpx.ResponsePayload {
+func (h *dbExceptionHandler) HandleException(_ error) httpx.ResponsePayload {
 	return BuiltintResponse.NewHttpError(500)
 }

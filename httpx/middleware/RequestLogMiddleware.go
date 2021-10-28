@@ -1,4 +1,4 @@
-package httpx
+package BuiltinMiddleware
 
 import (
 	"fmt"
@@ -6,14 +6,15 @@ import (
 	"github.com/meiguonet/mgboot-go-common/logx"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
+	"github.com/meiguonet/mgboot-go/httpx"
 )
 
-type RequestLogMiddleware struct {
+type requestLogMiddleware struct {
 	enabled bool
 	logger  logx.Logger
 }
 
-func NewRequestLogMiddleware() RequestLogMiddleware {
+func NewRequestLogMiddleware() *requestLogMiddleware {
 	logger := mgboot.RequestLogLogger()
 	var enabled bool
 
@@ -21,21 +22,25 @@ func NewRequestLogMiddleware() RequestLogMiddleware {
 		enabled = true
 	}
 
-	return RequestLogMiddleware{
+	return &requestLogMiddleware{
 		enabled: enabled,
 		logger:  logger,
 	}
 }
 
-func (m RequestLogMiddleware) GetType() int {
+func (m *requestLogMiddleware) GetName() string {
+	return "builtin.RequestLog"
+}
+
+func (m *requestLogMiddleware) GetType() int {
 	return MiddlewareType.PreHandle
 }
 
-func (m RequestLogMiddleware) GetOrder() int {
+func (m *requestLogMiddleware) GetOrder() int {
 	return MiddlewareOrder.Highest
 }
 
-func (m RequestLogMiddleware) PreHandle(req Request, resp Response) {
+func (m *requestLogMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response) {
 	if !m.enabled || !req.Next() || resp.HasError() {
 		return
 	}
@@ -57,5 +62,5 @@ func (m RequestLogMiddleware) PreHandle(req Request, resp Response) {
 	}
 }
 
-func (m RequestLogMiddleware) PostHandle(_ Request, _ Response) {
+func (m *requestLogMiddleware) PostHandle(_ *httpx.Request, _ *httpx.Response) {
 }

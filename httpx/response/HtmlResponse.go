@@ -1,4 +1,4 @@
-package httpx
+package BuiltintResponse
 
 type HtmlResponse struct {
 	contents string
@@ -12,6 +12,6 @@ func (p HtmlResponse) GetContentType() string {
 	return "text/html; charset=utf-8"
 }
 
-func (p HtmlResponse) GetContents() string {
+func (p HtmlResponse) GetContents() interface{} {
 	return p.contents
 }

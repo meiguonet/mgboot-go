@@ -5,7 +5,10 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-errors/errors"
 	"github.com/meiguonet/mgboot-go"
+	"github.com/meiguonet/mgboot-go-common/util/castx"
+	BuiltinException "github.com/meiguonet/mgboot-go/exception"
 	"io/ioutil"
+	"time"
 )
 
 func ParseJsonWebToken(token string) (*jwt.Token, error) {
@@ -28,6 +31,41 @@ func ParseJsonWebToken(token string) (*jwt.Token, error) {
 
 		return publicKey, nil
 	})
+}
+
+func VerifyJsonWebToken(arg0 interface{}, settings *JwtSettings) error {
+	var token *jwt.Token
+
+	if tk, ok := arg0.(*jwt.Token); ok {
+		token = tk
+	} else if s1, ok := arg0.(string); ok && s1 != "" {
+		tk, _ := ParseJsonWebToken(s1)
+		token = tk
+	}
+
+	if token == nil || !token.Valid {
+		return BuiltinException.NewAccessTokenInvalidException()
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+
+	if !ok {
+		return BuiltinException.NewAccessTokenInvalidException()
+	}
+
+	iss := settings.Issuer()
+
+	if iss != "" && castx.ToString(claims["iss"]) != iss {
+		return BuiltinException.NewAccessTokenInvalidException()
+	}
+
+	exp := castx.ToInt64(claims["exp"])
+
+	if exp > 0 && time.Now().Unix() > exp {
+		return BuiltinException.NewAccessTokenExpiredException()
+	}
+
+	return nil
 }
 
 func loadJwtPublicKeyPem(arg0 interface{}) []byte {

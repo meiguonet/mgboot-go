@@ -2,16 +2,18 @@ package httpx
 
 import (
 	"fmt"
+	"github.com/go-errors/errors"
 	"github.com/meiguonet/mgboot-go"
 	"github.com/meiguonet/mgboot-go-common/util/castx"
 	"github.com/meiguonet/mgboot-go-common/util/slicex"
 	"github.com/meiguonet/mgboot-go-common/util/stringx"
+	BuiltinException "github.com/meiguonet/mgboot-go/exception"
+	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
 	"github.com/meiguonet/mgboot-go/securityx"
 	"net/http"
 	"strings"
 )
 
-var unknowErrorResponse = []byte(`{"code":500,"msg":"unknow error found"}`)
 var payloadNilResponse = []byte(`{"code":500,"msg":"response payload is nil"}`)
 var unsupportedPayloadContentsResponse = []byte(`{"code":500,"msg":"unsupported response payload contents"}`)
 var emptyResponse = make([]byte, 0)
@@ -105,7 +107,9 @@ func (resp *Response) Send() {
 		}
 
 		if handler == nil {
-			resp.sendWithUnknowError()
+			resp.writeErrorLog(resp.err)
+			resp.err = BuiltinException.NewUnkownErrorException()
+			resp.Send()
 			return
 		}
 
@@ -127,13 +131,18 @@ func (resp *Response) Send() {
 		return
 	}
 
-	if payload, ok := contents.(ImageResponse); ok {
+	if payload, ok := contents.(BuiltintResponse.ImageResponse); ok {
 		resp.sendImage(payload)
 		return
 	}
 
-	if payload, ok := contents.(AttachmentResponse); ok {
+	if payload, ok := contents.(BuiltintResponse.AttachmentResponse); ok {
 		resp.sendAttachment(payload)
+		return
+	}
+
+	if payload, ok := contents.(BuiltintResponse.HttpError); ok {
+		resp.sendWithHttpErrorCode(payload.GetStatusCode())
 		return
 	}
 
@@ -221,20 +230,6 @@ func (resp *Response) addCorsSupport() {
 	}
 }
 
-func (resp *Response) sendWithUnknowError() {
-	if resp.corsSettings != nil {
-		resp.addCorsSupport()
-	}
-
-	resp.WithExtraHeader("Content-Type", "application/json; charset=utf-8")
-
-	for headerName, headerValue := range resp.extraHeaders {
-		resp.out.Header().Add(headerName, headerValue)
-	}
-
-	resp.out.Write(unknowErrorResponse)
-}
-
 func (resp *Response) sendWithPayloadNilError() {
 	if resp.corsSettings != nil {
 		resp.addCorsSupport()
@@ -278,7 +273,7 @@ func (resp *Response) sendWithHttpErrorCode(code int) {
 	resp.out.Write(emptyResponse)
 }
 
-func (resp *Response) sendImage(payload ImageResponse) {
+func (resp *Response) sendImage(payload BuiltintResponse.ImageResponse) {
 	if len(payload.Buffer()) < 1 || payload.GetContentType() == "" {
 		resp.sendWithHttpErrorCode(400)
 		return
@@ -297,7 +292,7 @@ func (resp *Response) sendImage(payload ImageResponse) {
 	resp.out.Write(payload.Buffer())
 }
 
-func (resp *Response) sendAttachment(payload AttachmentResponse) {
+func (resp *Response) sendAttachment(payload BuiltintResponse.AttachmentResponse) {
 	if len(payload.Buffer()) < 1 || payload.AttachmentFileName() == "" {
 		resp.sendWithHttpErrorCode(400)
 		return
@@ -338,4 +333,91 @@ func (resp *Response) sendString(contentType, contents string) {
 	}
 
 	resp.out.Write([]byte(contents))
+}
+
+func (resp *Response) writeErrorLog(arg0 interface{}) {
+	logger := mgboot.RuntimeLogger()
+
+	if logger ==  nil {
+		return
+	}
+
+	var msg string
+
+	if s1, ok := arg0.(string); ok {
+		msg = s1
+	} else if err, ok := arg0.(error); ok {
+		msg = resp.getStacktrace(err)
+	}
+
+	if msg == "" {
+		return
+	}
+
+	logger.Error(msg)
+}
+
+func (resp *Response) getStacktrace(arg0 interface{}) string {
+	if arg0 == nil {
+		return ""
+	}
+
+	var stacktrace string
+
+	switch t := arg0.(type) {
+	case *errors.Error:
+		stacktrace = t.ErrorStack()
+	case error:
+		stacktrace = errors.New(t).ErrorStack()
+	}
+
+	if stacktrace == "" {
+		return ""
+	}
+
+	stacktrace = strings.ReplaceAll(stacktrace, "\r", "")
+	lines := strings.Split(stacktrace, "\n")
+	var trace []string
+
+	if strings.Contains(stacktrace, "src/runtime/panic.go") {
+		n1 := -1
+
+		for i := 0; i < len(lines); i++ {
+			if i == 0 {
+				trace = append(trace, lines[i])
+				continue
+			}
+
+			if strings.Contains(lines[i], "src/runtime/panic.go") {
+				n1 = i
+				continue
+			}
+
+			if strings.Contains(lines[i], "src/runtime/proc.go") ||
+				strings.Contains(lines[i], "src/runtime/asm_amd64") {
+				break
+			}
+
+			if n1 < 0 || i <= n1 + 1 {
+				continue
+			}
+
+			trace = append(trace, lines[i])
+		}
+	} else {
+		for i := 0; i < len(lines); i++ {
+			if strings.Contains(lines[i], "src/runtime/proc.go") ||
+				strings.Contains(lines[i], "src/runtime/asm_amd64") {
+				break
+			}
+
+			trace = append(trace, lines[i])
+		}
+	}
+
+	if len(trace) < 1 {
+		return ""
+	}
+
+	return strings.Join(trace, "\n")
 }

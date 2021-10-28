@@ -6,6 +6,9 @@ import (
 	"github.com/meiguonet/mgboot-go"
 	"github.com/meiguonet/mgboot-go-common/enum/RegexConst"
 	"github.com/meiguonet/mgboot-go-common/util/castx"
+	"github.com/meiguonet/mgboot-go-common/util/jsonx"
+	"github.com/meiguonet/mgboot-go-common/util/mapx"
+	"github.com/meiguonet/mgboot-go-common/util/numberx"
 	"github.com/meiguonet/mgboot-go-common/util/slicex"
 	"github.com/meiguonet/mgboot-go-common/util/stringx"
 	"github.com/meiguonet/mgboot-go/mvc"
@@ -90,13 +93,14 @@ func NewRequest(req *http.Request) *Request {
 		formData:      formData,
 		formFiles:     formFiles,
 		pathVariables: map[string]string{},
-		rawBody:       buildRawBody(method, headers["Content-Type"], req),
+		rawBody:       buildRawBody(method, headers["Content-Type"], formData, req),
 		middlewares:   mgboot.Middlewares(),
 		execStart:     time.Now(),
+		next:          true,
 	}
 }
 
-func buildRawBody(method, contentType string, req *http.Request) []byte {
+func buildRawBody(method, contentType string, formData map[string]string, req *http.Request) []byte {
 	methods := []string{"POST", "PUT", "PATCH", "DELETE"}
 
 	if !slicex.InStringSlice(method, methods) {
@@ -104,10 +108,24 @@ func buildRawBody(method, contentType string, req *http.Request) []byte {
 	}
 
 	contentType = strings.ToLower(contentType)
+	isPostForm := strings.Contains(contentType, "application/x-www-form-urlencoded")
+	isMultipartForm := strings.Contains(contentType, "multipart/form-data")
 
-	if !strings.Contains(contentType, "application/json") &&
-		!strings.Contains(contentType, "application/xml") &&
-		!strings.Contains(contentType, "text/xml") {
+	if method == "POST" && (isPostForm || isMultipartForm) {
+		sb := make([]string, 0)
+
+		for name, value := range formData {
+			sb = append(sb, fmt.Sprintf("%s=%s", name, value))
+		}
+
+		return []byte(strings.Join(sb, "&"))
+	}
+
+	isJson := strings.Contains(contentType, "application/json")
+	isXml1 := strings.Contains(contentType, "application/xml")
+	isXml2 := strings.Contains(contentType, "text/xml")
+
+	if !isJson && !isXml1 && !isXml2 {
 		return make([]byte, 0)
 	}
 
@@ -662,7 +680,136 @@ func (r *Request) GetUploadedFile(formFieldName string) *multipart.FileHeader {
 }
 
 func (r *Request) GetMap(rules ...[]string) map[string]interface{} {
-	return nil
+	var _rules []string
+
+	if len(rules) > 0 {
+		_rules = rules[0]
+	}
+
+	method := r.GetMethod()
+	methods := []string{"POST", "PUT", "PATCH", "DELETE"}
+	contentType := strings.ToLower(r.GetHeader("Content-Type"))
+	isPostForm := strings.Contains(contentType, "application/x-www-form-urlencoded")
+	isMultipartForm := strings.Contains(contentType, "multipart/form-data")
+	isJson := strings.Contains(contentType, "application/json")
+	isXml1 := strings.Contains(contentType, "application/xml")
+	isXml2 := strings.Contains(contentType, "text/xml")
+	map1 := map[string]interface{}{}
+
+	if method == "GET" {
+		for key, value := range r.queryParams {
+			map1[key] = value
+		}
+	} else if method == "POST" && (isPostForm || isMultipartForm) {
+		for key, value := range r.queryParams {
+			map1[key] = value
+		}
+
+		for key, value := range r.formData {
+			map1[key] = value
+		}
+	} else if slicex.InStringSlice(method, methods) {
+		return map1
+	} else if isJson {
+		map1 = jsonx.MapFrom(r.GetRawBody())
+	} else if isXml1 || isXml2 {
+		map2 := mapx.FromXml(r.GetRawBody())
+
+		for key, value := range map2 {
+			map1[key] = value
+		}
+	}
+
+	if len(map1) < 1 {
+		return map[string]interface{}{}
+	}
+
+	if len(_rules) < 1 {
+		return map1
+	}
+
+	ret := map[string]interface{}{}
+	re1 := regexp.MustCompile(`:[^:]+$`)
+	re2 := regexp.MustCompile(`:[0-9]+$`)
+
+	for _, rule := range _rules {
+		name := rule
+		typ := 1
+		mode := 2
+		dv := ""
+
+		if strings.HasPrefix(name, "i:") {
+			name = stringx.SubstringAfter(name, ":")
+			typ = 2
+
+			if re1.MatchString(name) {
+				dv = stringx.SubstringAfterLast(name, ":")
+				name = re1.ReplaceAllString(name, "")
+			}
+		} else if strings.HasPrefix(name, "d:") {
+			name = stringx.SubstringAfter(name, ":")
+			typ = 3
+
+			if re1.MatchString(name) {
+				dv = stringx.SubstringAfterLast(name, ":")
+				name = re1.ReplaceAllString(name, "")
+			}
+		} else if strings.HasPrefix(name, "s:") {
+			name = stringx.SubstringAfter(name, ":")
+
+			if re2.MatchString(name) {
+				s1 := stringx.SubstringAfterLast(name, ":")
+				mode = castx.ToInt(s1, 2)
+				name = re2.ReplaceAllString(name, "")
+			}
+		} else if re2.MatchString(name) {
+			s1 := stringx.SubstringAfterLast(name, ":")
+			mode = castx.ToInt(s1, 2)
+			name = re2.ReplaceAllString(name, "")
+		}
+
+		if strings.Contains(name, ":") {
+			name = stringx.SubstringBefore(name, ":")
+		}
+
+		if name == "" {
+			continue
+		}
+
+		switch typ {
+		case 1:
+			value := castx.ToString(map1[name])
+
+			switch mode {
+			case 1, 2:
+				value = stringx.StripTags(value)
+			}
+
+			ret[name] = value
+		case 2:
+			var value int
+
+			if n1, err := castx.ToIntE(dv); err == nil {
+				value = castx.ToInt(map1[name], n1)
+			} else {
+				value = castx.ToInt(map1[name])
+			}
+
+			ret[name] = value
+		case 3:
+			var value float64
+
+			if n1, err := castx.ToFloat64E(dv); err == nil {
+				value = castx.ToFloat64(map1[name], n1)
+			} else {
+				value = castx.ToFloat64(map1[name])
+			}
+
+			ret[name] = numberx.ToDecimalString(value)
+		}
+	}
+
+	return ret
 }
 
 func (r *Request) GetRawBody() []byte {

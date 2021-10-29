@@ -1,10 +1,9 @@
-package BuiltinMiddleware
+package httpx
 
 import (
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
-	"github.com/meiguonet/mgboot-go/httpx"
 	"github.com/meiguonet/mgboot-go/securityx"
 )
 
@@ -28,7 +27,7 @@ func (m *jwtAuthMiddleware) GetOrder() int {
 	return MiddlewareOrder.Highest
 }
 
-func (m *jwtAuthMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response) {
+func (m *jwtAuthMiddleware) PreHandle(req *Request, resp *Response) {
 	if !req.Next() || resp.HasError() {
 		return
 	}
@@ -63,5 +62,5 @@ func (m *jwtAuthMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response) 
 	}
 }
 
-func (m *jwtAuthMiddleware) PostHandle(_ *httpx.Request, _ *httpx.Response) {
+func (m *jwtAuthMiddleware) PostHandle(_ *Request, _ *Response) {
 }

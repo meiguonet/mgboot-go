@@ -1,10 +1,9 @@
-package BuiltinMiddleware
+package httpx
 
 import (
 	"fmt"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
-	"github.com/meiguonet/mgboot-go/httpx"
 	"github.com/meiguonet/mgboot-go/logx"
 )
 
@@ -27,7 +26,7 @@ func (m *requestLogMiddleware) GetOrder() int {
 	return MiddlewareOrder.Highest
 }
 
-func (m *requestLogMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response) {
+func (m *requestLogMiddleware) PreHandle(req *Request, resp *Response) {
 	if !req.Next() || resp.HasError() {
 		return
 	}
@@ -50,5 +49,5 @@ func (m *requestLogMiddleware) PreHandle(req *httpx.Request, resp *httpx.Respons
 	}
 }
 
-func (m *requestLogMiddleware) PostHandle(_ *httpx.Request, _ *httpx.Response) {
+func (m *requestLogMiddleware) PostHandle(_ *Request, _ *Response) {
 }

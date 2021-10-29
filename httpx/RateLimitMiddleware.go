@@ -1,4 +1,4 @@
-package BuiltinMiddleware
+package httpx
 
 import (
 	"github.com/meiguonet/mgboot-go-common/util/castx"
@@ -7,7 +7,6 @@ import (
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
-	"github.com/meiguonet/mgboot-go/httpx"
 	"time"
 )
 
@@ -77,7 +76,7 @@ func (m *rateLimitMiddleware) GetOrder() int {
 	return MiddlewareOrder.Highest
 }
 
-func (m *rateLimitMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response) {
+func (m *rateLimitMiddleware) PreHandle(req *Request, resp *Response) {
 	if !req.Next() || resp.HasError() || m.total < 1 || m.duration < 1 {
 		return
 	}
@@ -112,5 +111,5 @@ func (m *rateLimitMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response
 	req.Next(false)
 }
 
-func (m *rateLimitMiddleware) PostHandle(_ *httpx.Request, _ *httpx.Response) {
+func (m *rateLimitMiddleware) PostHandle(_ *Request, _ *Response) {
 }

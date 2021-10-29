@@ -1,9 +1,7 @@
-package BuiltinExceptionHandler
+package httpx
 
 import (
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
-	"github.com/meiguonet/mgboot-go/httpx"
-	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
 )
 
 type unkownErrorHandler struct {
@@ -25,7 +23,7 @@ func (h *unkownErrorHandler) MatchException(err error) bool {
 	return false
 }
 
-func (h *unkownErrorHandler) HandleException(err error) httpx.ResponsePayload {
+func (h *unkownErrorHandler) HandleException(err error) ResponsePayload {
 	var msg string
 	ex, ok := err.(BuiltinException.UnkownErrorException)
 
@@ -41,5 +39,5 @@ func (h *unkownErrorHandler) HandleException(err error) httpx.ResponsePayload {
 		"data": nil,
 	}
 
-	return BuiltintResponse.NewJsonResponse(map1)
+	return NewJsonResponse(map1)
 }

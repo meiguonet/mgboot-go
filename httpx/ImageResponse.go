@@ -1,4 +1,4 @@
-package BuiltintResponse
+package httpx
 
 import (
 	"github.com/meiguonet/mgboot-go-common/util/mimex"

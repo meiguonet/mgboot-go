@@ -7,8 +7,6 @@ import (
 	"github.com/meiguonet/mgboot-go-common/util/slicex"
 	"github.com/meiguonet/mgboot-go-common/util/stringx"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
-	BuiltinExceptionHandler "github.com/meiguonet/mgboot-go/httpx/ExceptionHandler"
-	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
 	"github.com/meiguonet/mgboot-go/logx"
 	"github.com/meiguonet/mgboot-go/securityx"
 	"net/http"
@@ -31,23 +29,23 @@ type Response struct {
 
 func NewResponse(request *Request, out http.ResponseWriter) *Response {
 	exceptionHandlers := []ExceptionHandler{
-		BuiltinExceptionHandler.NewDbExceptionHandler(),
-		BuiltinExceptionHandler.NewHttpErrorHandler(),
-		BuiltinExceptionHandler.NewUnkownErrorHandler(),
+		NewDbExceptionHandler(),
+		NewHttpErrorHandler(),
+		NewUnkownErrorHandler(),
 	}
 
-	if jwtAuthExceptionHandler != nil {
-		exceptionHandlers = append(exceptionHandlers, jwtAuthExceptionHandler)
+	if customJwtAuthExceptionHandler != nil {
+		exceptionHandlers = append(exceptionHandlers, customJwtAuthExceptionHandler)
 	} else {
-		exceptionHandlers = append(exceptionHandlers, BuiltinExceptionHandler.NewAccessTokenExpiredHandler())
-		exceptionHandlers = append(exceptionHandlers, BuiltinExceptionHandler.NewAccessTokenInvalidHandler())
-		exceptionHandlers = append(exceptionHandlers, BuiltinExceptionHandler.NewRequireAccessTokenHandler())
+		exceptionHandlers = append(exceptionHandlers, NewAccessTokenExpiredHandler())
+		exceptionHandlers = append(exceptionHandlers, NewAccessTokenInvalidHandler())
+		exceptionHandlers = append(exceptionHandlers, NewRequireAccessTokenHandler())
 	}
 
-	if validateExceptionHandler != nil {
-		exceptionHandlers = append(exceptionHandlers, validateExceptionHandler)
+	if customValidateExceptionHandler != nil {
+		exceptionHandlers = append(exceptionHandlers, customValidateExceptionHandler)
 	} else {
-		exceptionHandlers = append(exceptionHandlers, BuiltinExceptionHandler.NewValidateExceptionHandler())
+		exceptionHandlers = append(exceptionHandlers, NewValidateExceptionHandler())
 	}
 
 	resp := &Response{
@@ -169,17 +167,17 @@ func (resp *Response) Send() {
 		return
 	}
 
-	if payload, ok := contents.(BuiltintResponse.ImageResponse); ok {
+	if payload, ok := contents.(ImageResponse); ok {
 		resp.sendImage(payload)
 		return
 	}
 
-	if payload, ok := contents.(BuiltintResponse.AttachmentResponse); ok {
+	if payload, ok := contents.(AttachmentResponse); ok {
 		resp.sendAttachment(payload)
 		return
 	}
 
-	if payload, ok := contents.(BuiltintResponse.HttpError); ok {
+	if payload, ok := contents.(HttpError); ok {
 		resp.sendWithHttpErrorCode(payload.GetStatusCode())
 		return
 	}
@@ -299,7 +297,7 @@ func (resp *Response) sendWithHttpErrorCode(code int) {
 	resp.out.Write(emptyResponse)
 }
 
-func (resp *Response) sendImage(payload BuiltintResponse.ImageResponse) {
+func (resp *Response) sendImage(payload ImageResponse) {
 	if len(payload.Buffer()) < 1 || payload.GetContentType() == "" {
 		resp.sendWithHttpErrorCode(400)
 		return
@@ -314,7 +312,7 @@ func (resp *Response) sendImage(payload BuiltintResponse.ImageResponse) {
 	resp.out.Write(payload.Buffer())
 }
 
-func (resp *Response) sendAttachment(payload BuiltintResponse.AttachmentResponse) {
+func (resp *Response) sendAttachment(payload AttachmentResponse) {
 	if len(payload.Buffer()) < 1 || payload.AttachmentFileName() == "" {
 		resp.sendWithHttpErrorCode(400)
 		return

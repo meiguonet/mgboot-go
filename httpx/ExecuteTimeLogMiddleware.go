@@ -1,11 +1,10 @@
-package BuiltinMiddleware
+package httpx
 
 import (
 	"fmt"
 	"github.com/meiguonet/mgboot-go-common/util/numberx"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
-	"github.com/meiguonet/mgboot-go/httpx"
 	"github.com/meiguonet/mgboot-go/logx"
 	"time"
 )
@@ -29,10 +28,10 @@ func (m *executeTimeLogMiddleware) GetOrder() int {
 	return MiddlewareOrder.Lowest
 }
 
-func (m *executeTimeLogMiddleware) PreHandle(_ *httpx.Request, _ *httpx.Response) {
+func (m *executeTimeLogMiddleware) PreHandle(_ *Request, _ *Response) {
 }
 
-func (m *executeTimeLogMiddleware) PostHandle(req *httpx.Request, resp *httpx.Response) {
+func (m *executeTimeLogMiddleware) PostHandle(req *Request, resp *Response) {
 	httpMethod := req.GetMethod()
 	requestUrl := req.GetRequestUrl(true)
 
@@ -46,7 +45,7 @@ func (m *executeTimeLogMiddleware) PostHandle(req *httpx.Request, resp *httpx.Re
 	resp.WithExtraHeader("X-Response-Time", elapsedTime)
 }
 
-func (m *executeTimeLogMiddleware) calcElapsedTime(req *httpx.Request) string {
+func (m *executeTimeLogMiddleware) calcElapsedTime(req *Request) string {
 	d1 := time.Now().Sub(req.GetExecStart())
 
 	if d1 < time.Second {

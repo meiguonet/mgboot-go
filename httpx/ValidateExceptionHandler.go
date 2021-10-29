@@ -1,10 +1,8 @@
-package BuiltinExceptionHandler
+package httpx
 
 import (
 	"github.com/meiguonet/mgboot-go-common/util/jsonx"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
-	"github.com/meiguonet/mgboot-go/httpx"
-	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
 )
 
 type validateExceptionHandler struct {
@@ -26,11 +24,11 @@ func (h *validateExceptionHandler) MatchException(err error) bool {
 	return false
 }
 
-func (h *validateExceptionHandler) HandleException(err error) httpx.ResponsePayload {
+func (h *validateExceptionHandler) HandleException(err error) ResponsePayload {
 	ex, ok := err.(BuiltinException.ValidateException)
 
 	if !ok {
-		return BuiltintResponse.NewHttpError(500)
+		return NewHttpError(500)
 	}
 
 	var msg string
@@ -47,5 +45,5 @@ func (h *validateExceptionHandler) HandleException(err error) httpx.ResponsePayl
 		"data": nil,
 	}
 
-	return BuiltintResponse.NewJsonResponse(map1)
+	return NewJsonResponse(map1)
 }

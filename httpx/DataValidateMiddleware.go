@@ -1,11 +1,10 @@
-package BuiltinMiddleware
+package httpx
 
 import (
 	"github.com/meiguonet/mgboot-go-common/util/validatex"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
-	"github.com/meiguonet/mgboot-go/httpx"
 )
 
 type dataValidateMiddleware struct {
@@ -27,7 +26,7 @@ func (m *dataValidateMiddleware) GetOrder() int {
 	return MiddlewareOrder.Highest
 }
 
-func (m *dataValidateMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response) {
+func (m *dataValidateMiddleware) PreHandle(req *Request, resp *Response) {
 	if !req.Next() || resp.HasError() {
 		return
 	}
@@ -66,5 +65,5 @@ func (m *dataValidateMiddleware) PreHandle(req *httpx.Request, resp *httpx.Respo
 	}
 }
 
-func (m *dataValidateMiddleware) PostHandle(_ *httpx.Request, _ *httpx.Response) {
+func (m *dataValidateMiddleware) PostHandle(_ *Request, _ *Response) {
 }

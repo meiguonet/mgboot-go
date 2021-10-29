@@ -1,9 +1,7 @@
-package BuiltinExceptionHandler
+package httpx
 
 import (
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
-	"github.com/meiguonet/mgboot-go/httpx"
-	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
 )
 
 type requireAccessTokenHandler struct {
@@ -25,11 +23,11 @@ func (h *requireAccessTokenHandler) MatchException(err error) bool {
 	return false
 }
 
-func (h *requireAccessTokenHandler) HandleException(err error) httpx.ResponsePayload {
+func (h *requireAccessTokenHandler) HandleException(err error) ResponsePayload {
 	ex, ok := err.(BuiltinException.RequireAccessTokenException)
 
 	if !ok {
-		return BuiltintResponse.NewHttpError(500)
+		return NewHttpError(500)
 	}
 
 	map1 := map[string]interface{}{
@@ -38,5 +36,5 @@ func (h *requireAccessTokenHandler) HandleException(err error) httpx.ResponsePay
 		"data": nil,
 	}
 
-	return BuiltintResponse.NewJsonResponse(map1)
+	return NewJsonResponse(map1)
 }

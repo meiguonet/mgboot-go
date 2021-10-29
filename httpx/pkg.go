@@ -5,8 +5,8 @@ import (
 )
 
 var maxBodySize int64
-var jwtAuthExceptionHandler ExceptionHandler
-var validateExceptionHandler ExceptionHandler
+var customJwtAuthExceptionHandler ExceptionHandler
+var customValidateExceptionHandler ExceptionHandler
 
 func WithMaxBodySize(arg0 interface{}) {
 	var n1 int64
@@ -44,9 +44,9 @@ func MaxBodySize(args ...interface{}) int64 {
 }
 
 func WithJwtAuthExceptionHandler(handler ExceptionHandler) {
-	jwtAuthExceptionHandler = handler
+	customJwtAuthExceptionHandler = handler
 }
 
 func WithValidateExceptionHandler(handler ExceptionHandler)  {
-	validateExceptionHandler = handler
+	customValidateExceptionHandler = handler
 }

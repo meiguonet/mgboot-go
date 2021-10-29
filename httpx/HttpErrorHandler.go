@@ -1,9 +1,7 @@
-package BuiltinExceptionHandler
+package httpx
 
 import (
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
-	"github.com/meiguonet/mgboot-go/httpx"
-	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
 )
 
 type httpErrorHandler struct {
@@ -25,12 +23,12 @@ func (h *httpErrorHandler) MatchException(err error) bool {
 	return false
 }
 
-func (h *httpErrorHandler) HandleException(err error) httpx.ResponsePayload {
+func (h *httpErrorHandler) HandleException(err error) ResponsePayload {
 	ex, ok := err.(BuiltinException.HttpErrorException)
 
 	if !ok {
-		return BuiltintResponse.NewHttpError(500)
+		return NewHttpError(500)
 	}
 
-	return BuiltintResponse.NewHttpError(ex.GetStatusCode())
+	return NewHttpError(ex.GetStatusCode())
 }

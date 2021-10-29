@@ -1,4 +1,4 @@
-package BuiltintResponse
+package httpx
 
 type HtmlResponse struct {
 	contents string

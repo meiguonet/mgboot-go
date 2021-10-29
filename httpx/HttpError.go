@@ -1,4 +1,4 @@
-package BuiltintResponse
+package httpx
 
 type HttpError struct {
 	statusCode int

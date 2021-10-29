@@ -3,12 +3,13 @@ package httpx
 import (
 	"fmt"
 	"github.com/go-errors/errors"
-	"github.com/meiguonet/mgboot-go-common/logx"
 	"github.com/meiguonet/mgboot-go-common/util/castx"
 	"github.com/meiguonet/mgboot-go-common/util/slicex"
 	"github.com/meiguonet/mgboot-go-common/util/stringx"
 	BuiltinException "github.com/meiguonet/mgboot-go/exception"
+	BuiltinExceptionHandler "github.com/meiguonet/mgboot-go/httpx/ExceptionHandler"
 	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
+	"github.com/meiguonet/mgboot-go/logx"
 	"github.com/meiguonet/mgboot-go/securityx"
 	"net/http"
 	"strings"
@@ -26,22 +27,36 @@ type Response struct {
 	extraHeaders      map[string]string
 	exceptionHandlers []ExceptionHandler
 	corsSettings      *securityx.CorsSettings
-	logger            logx.Logger
 }
 
 func NewResponse(request *Request, out http.ResponseWriter) *Response {
+	exceptionHandlers := []ExceptionHandler{
+		BuiltinExceptionHandler.NewDbExceptionHandler(),
+		BuiltinExceptionHandler.NewHttpErrorHandler(),
+		BuiltinExceptionHandler.NewUnkownErrorHandler(),
+	}
+
+	if jwtAuthExceptionHandler != nil {
+		exceptionHandlers = append(exceptionHandlers, jwtAuthExceptionHandler)
+	} else {
+		exceptionHandlers = append(exceptionHandlers, BuiltinExceptionHandler.NewAccessTokenExpiredHandler())
+		exceptionHandlers = append(exceptionHandlers, BuiltinExceptionHandler.NewAccessTokenInvalidHandler())
+		exceptionHandlers = append(exceptionHandlers, BuiltinExceptionHandler.NewRequireAccessTokenHandler())
+	}
+
+	if validateExceptionHandler != nil {
+		exceptionHandlers = append(exceptionHandlers, validateExceptionHandler)
+	} else {
+		exceptionHandlers = append(exceptionHandlers, BuiltinExceptionHandler.NewValidateExceptionHandler())
+	}
+
 	resp := &Response{
 		request:           request,
 		out:               out,
 		extraHeaders:      map[string]string{},
-		exceptionHandlers: make([]ExceptionHandler, 0),
+		exceptionHandlers: exceptionHandlers,
 	}
 
-	return resp
-}
-
-func (resp *Response) WithLogger(logger logx.Logger) *Response {
-	resp.logger = logger
 	return resp
 }
 
@@ -88,21 +103,6 @@ func (resp *Response) WithExceptionHandlers(handlers []ExceptionHandler) *Respon
 	return resp
 }
 
-func (resp *Response) ReplaceValidateExceptionHandler(handler ExceptionHandler) *Response {
-	handlers := make([]ExceptionHandler, 0)
-
-	for _, h := range resp.exceptionHandlers {
-		if h.GetExceptionName() == "builtin.ValidateException" {
-			handlers = append(handlers, handler)
-		} else {
-			handlers = append(handlers, h)
-		}
-	}
-
-	resp.exceptionHandlers = handlers
-	return resp
-}
-
 func (resp *Response) WithCorsSettings(corsSettings *securityx.CorsSettings) *Response {
 	if corsSettings != nil {
 		resp.corsSettings = corsSettings
@@ -116,7 +116,23 @@ func (resp *Response) HasError() bool {
 }
 
 func (resp *Response) Send() {
+	if resp.corsSettings != nil {
+		resp.addCorsSupport()
+	}
+
 	if resp.err != nil {
+		if ex, ok := resp.err.(BuiltinException.RateLimitExceedException); ok {
+			resp.WithExtraHeader("X-Ratelimit-Limit", fmt.Sprintf("%d", ex.Total()))
+			resp.WithExtraHeader("X-Ratelimit-Remaining", fmt.Sprintf("%d", ex.Remaining()))
+
+			if ex.RetryAfter() != "" {
+				resp.WithExtraHeader("Retry-After", ex.RetryAfter())
+			}
+
+			resp.sendWithHttpErrorCode(429)
+			return
+		}
+
 		var handler ExceptionHandler
 
 		if len(resp.exceptionHandlers) > 0 {
@@ -178,7 +194,7 @@ func (resp *Response) Send() {
 	resp.sendString(resp.payload.GetContentType(), s1)
 }
 
-func (resp *Response) needCorsSupport() bool {
+func (resp *Response) NeedCorsSupport() bool {
 	methods := []string{"PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH"}
 
 	if slicex.InStringSlice(resp.request.GetMethod(), methods) {
@@ -253,10 +269,6 @@ func (resp *Response) addCorsSupport() {
 }
 
 func (resp *Response) sendWithPayloadNilError() {
-	if resp.corsSettings != nil {
-		resp.addCorsSupport()
-	}
-
 	resp.WithExtraHeader("Content-Type", "application/json; charset=utf-8")
 
 	for headerName, headerValue := range resp.extraHeaders {
@@ -267,10 +279,6 @@ func (resp *Response) sendWithPayloadNilError() {
 }
 
 func (resp *Response) sendWithUnsupportedPayloadContentsError() {
-	if resp.corsSettings != nil {
-		resp.addCorsSupport()
-	}
-
 	resp.WithExtraHeader("Content-Type", "application/json; charset=utf-8")
 
 	for headerName, headerValue := range resp.extraHeaders {
@@ -281,10 +289,6 @@ func (resp *Response) sendWithUnsupportedPayloadContentsError() {
 }
 
 func (resp *Response) sendWithHttpErrorCode(code int) {
-	if resp.corsSettings != nil {
-		resp.addCorsSupport()
-	}
-
 	resp.WithExtraHeader("Content-Type", "text/plain")
 
 	for headerName, headerValue := range resp.extraHeaders {
@@ -299,10 +303,6 @@ func (resp *Response) sendImage(payload BuiltintResponse.ImageResponse) {
 	if len(payload.Buffer()) < 1 || payload.GetContentType() == "" {
 		resp.sendWithHttpErrorCode(400)
 		return
-	}
-
-	if resp.corsSettings != nil {
-		resp.addCorsSupport()
 	}
 
 	resp.WithExtraHeader("Content-Type", payload.GetContentType())
@@ -340,10 +340,6 @@ func (resp *Response) sendAttachment(payload BuiltintResponse.AttachmentResponse
 }
 
 func (resp *Response) sendString(contentType, contents string) {
-	if resp.corsSettings != nil {
-		resp.addCorsSupport()
-	}
-
 	if contentType == "" {
 		contentType = "text/plain; charset=utf-8"
 	}
@@ -358,10 +354,6 @@ func (resp *Response) sendString(contentType, contents string) {
 }
 
 func (resp *Response) writeErrorLog(arg0 interface{}) {
-	if resp.logger ==  nil {
-		return
-	}
-
 	var msg string
 
 	if s1, ok := arg0.(string); ok {
@@ -374,7 +366,7 @@ func (resp *Response) writeErrorLog(arg0 interface{}) {
 		return
 	}
 
-	resp.logger.Error(msg)
+	logx.Error(msg)
 }
 
 func (resp *Response) getStacktrace(arg0 interface{}) string {

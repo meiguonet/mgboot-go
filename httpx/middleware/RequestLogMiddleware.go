@@ -2,28 +2,17 @@ package BuiltinMiddleware
 
 import (
 	"fmt"
-	"github.com/meiguonet/mgboot-go-common/logx"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
 	"github.com/meiguonet/mgboot-go/httpx"
+	"github.com/meiguonet/mgboot-go/logx"
 )
 
 type requestLogMiddleware struct {
-	enabled bool
-	logger  logx.Logger
 }
 
-func NewRequestLogMiddleware(logger logx.Logger) *requestLogMiddleware {
-	var enabled bool
-
-	if logger != nil {
-		enabled = true
-	}
-
-	return &requestLogMiddleware{
-		enabled: enabled,
-		logger:  logger,
-	}
+func NewRequestLogMiddleware() *requestLogMiddleware {
+	return &requestLogMiddleware{}
 }
 
 func (m *requestLogMiddleware) GetName() string {
@@ -39,7 +28,7 @@ func (m *requestLogMiddleware) GetOrder() int {
 }
 
 func (m *requestLogMiddleware) PreHandle(req *httpx.Request, resp *httpx.Response) {
-	if !m.enabled || !req.Next() || resp.HasError() {
+	if !req.Next() || resp.HasError() {
 		return
 	}
 
@@ -51,12 +40,13 @@ func (m *requestLogMiddleware) PreHandle(req *httpx.Request, resp *httpx.Respons
 		return
 	}
 
+	logger := logx.GetRequestLogLogger()
 	msg := fmt.Sprintf("%s %s from %s", httpMethod, requestUrl, clientIp)
-	m.logger.Info(msg)
+	logger.Info(msg)
 	buf := req.GetRawBody()
 
 	if len(buf) > 0 {
-		m.logger.Debug(string(buf))
+		logger.Debug(string(buf))
 	}
 }
 

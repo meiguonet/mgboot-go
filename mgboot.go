@@ -27,7 +27,67 @@ func Dispatch(w http.ResponseWriter, req *http.Request, modules []httpx.HandlerM
 		return
 	}
 
-	requestUri := stringx.EnsureLeft(req.RequestURI, "/")
+	requestUri := strings.TrimRight(req.RequestURI, "/")
+	requestUri = stringx.EnsureLeft(requestUri, "/")
+	handlers := findExplicitMatchedHandlers(requestUri, modules)
+	extraHandlers, pathVariables := findRegexMatchedHandlers(requestUri, modules)
+
+	if len(extraHandlers) > 0 {
+		handlers = append(handlers, extraHandlers...)
+	}
+
+	if len(handlers) < 1 {
+		w.Header().Add("Content-Type", textPlain)
+		w.WriteHeader(404)
+		w.Write([]byte{})
+		return
+	}
+
+	var handler *httpx.HandlerEntry
+
+	for _, h := range handlers {
+		if h.GetRouteRule().HttpMethod() == method {
+			handler = h
+			break
+		}
+	}
+
+	if handler == nil {
+		w.Header().Add("Content-Type", textPlain)
+		w.WriteHeader(405)
+		w.Write([]byte{})
+		return
+	}
+
+	request := httpx.NewRequest(req).WithPathVariables(pathVariables)
+	response := httpx.NewResponse(request, w)
+	handler.HandleRequest(request, response)
+}
+
+func findExplicitMatchedHandlers(requestUri string, modules []httpx.HandlerModule) []*httpx.HandlerEntry {
+	handlers := make([]*httpx.HandlerEntry, 0)
+
+	for _, m := range modules {
+		entries := m.GetHandlerEntries()
+
+		for _, entry := range entries {
+			routeRule := entry.GetRouteRule()
+
+			if routeRule == nil || routeRule.IsRegex() || routeRule.RequestMapping() != requestUri {
+				continue
+			}
+
+			handlers = append(handlers, entry)
+		}
+	}
+
+	return handlers
+}
+
+func findRegexMatchedHandlers(
+	requestUri string,
+	modules []httpx.HandlerModule,
+) ([]*httpx.HandlerEntry, map[string]string) {
 	handlers := make([]*httpx.HandlerEntry, 0)
 	pathVariables := map[string]string{}
 
@@ -37,20 +97,11 @@ func Dispatch(w http.ResponseWriter, req *http.Request, modules []httpx.HandlerM
 		for _, entry := range entries {
 			routeRule := entry.GetRouteRule()
 
-			if routeRule == nil {
+			if routeRule == nil || !routeRule.IsRegex() {
 				continue
 			}
 
-			if routeRule.RequestMapping() == requestUri {
-				handlers = append(handlers, entry)
-				continue
-			}
-
-			if routeRule.Regex() == "" {
-				continue
-			}
-
-			re, err := regexp.Compile(routeRule.Regex())
+			re, err := regexp.Compile(routeRule.RequestMapping())
 
 			if err != nil {
 				continue
@@ -80,30 +131,5 @@ func Dispatch(w http.ResponseWriter, req *http.Request, modules []httpx.HandlerM
 		}
 	}
 
-	if len(handlers) < 1 {
-		w.Header().Add("Content-Type", textPlain)
-		w.WriteHeader(404)
-		w.Write([]byte{})
-		return
-	}
-
-	var handler *httpx.HandlerEntry
-
-	for _, h := range handlers {
-		if h.GetRouteRule().HttpMethod() == method {
-			handler = h
-			break
-		}
-	}
-
-	if handler == nil {
-		w.Header().Add("Content-Type", textPlain)
-		w.WriteHeader(405)
-		w.Write([]byte{})
-		return
-	}
-
-	request := httpx.NewRequest(req).WithPathVariables(pathVariables)
-	response := httpx.NewResponse(request, w)
-	handler.HandleRequest(request, response)
+	return handlers, pathVariables
 }

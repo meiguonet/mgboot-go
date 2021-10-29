@@ -7,18 +7,18 @@ import (
 	BuiltintResponse "github.com/meiguonet/mgboot-go/httpx/response"
 )
 
-type validateHandler struct {
+type validateExceptionHandler struct {
 }
 
-func NewValidateHandler() *validateHandler {
-	return &validateHandler{}
+func NewValidateExceptionHandler() *validateExceptionHandler {
+	return &validateExceptionHandler{}
 }
 
-func (h *validateHandler) GetExceptionName() string {
+func (h *validateExceptionHandler) GetExceptionName() string {
 	return "builtin.ValidateException"
 }
 
-func (h *validateHandler) MatchException(err error) bool {
+func (h *validateExceptionHandler) MatchException(err error) bool {
 	if _, ok := err.(BuiltinException.ValidateException); ok {
 		return true
 	}
@@ -26,7 +26,7 @@ func (h *validateHandler) MatchException(err error) bool {
 	return false
 }
 
-func (h *validateHandler) HandleException(err error) httpx.ResponsePayload {
+func (h *validateExceptionHandler) HandleException(err error) httpx.ResponsePayload {
 	ex, ok := err.(BuiltinException.ValidateException)
 
 	if !ok {
@@ -44,6 +44,7 @@ func (h *validateHandler) HandleException(err error) httpx.ResponsePayload {
 	map1 := map[string]interface{}{
 		"code": 1006,
 		"msg":  msg,
+		"data": nil,
 	}
 
 	return BuiltintResponse.NewJsonResponse(map1)

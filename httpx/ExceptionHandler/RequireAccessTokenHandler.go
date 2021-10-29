@@ -35,6 +35,7 @@ func (h *requireAccessTokenHandler) HandleException(err error) httpx.ResponsePay
 	map1 := map[string]interface{}{
 		"code": 1001,
 		"msg":  ex.Error(),
+		"data": nil,
 	}
 
 	return BuiltintResponse.NewJsonResponse(map1)

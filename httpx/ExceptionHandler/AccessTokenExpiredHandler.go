@@ -35,6 +35,7 @@ func (h *accessTokenExpiredHandler) HandleException(err error) httpx.ResponsePay
 	map1 := map[string]interface{}{
 		"code": 1003,
 		"msg":  ex.Error(),
+		"data": nil,
 	}
 
 	return BuiltintResponse.NewJsonResponse(map1)

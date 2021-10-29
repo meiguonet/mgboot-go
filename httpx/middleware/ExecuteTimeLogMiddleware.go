@@ -2,30 +2,19 @@ package BuiltinMiddleware
 
 import (
 	"fmt"
-	"github.com/meiguonet/mgboot-go-common/logx"
 	"github.com/meiguonet/mgboot-go-common/util/numberx"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareOrder"
 	"github.com/meiguonet/mgboot-go/enum/MiddlewareType"
 	"github.com/meiguonet/mgboot-go/httpx"
+	"github.com/meiguonet/mgboot-go/logx"
 	"time"
 )
 
 type executeTimeLogMiddleware struct {
-	enabled bool
-	logger  logx.Logger
 }
 
-func NewExecuteTimeLogMiddleware(logger logx.Logger) *executeTimeLogMiddleware {
-	var enabled bool
-
-	if logger != nil {
-		enabled = true
-	}
-
-	return &executeTimeLogMiddleware{
-		enabled: enabled,
-		logger:  logger,
-	}
+func NewExecuteTimeLogMiddleware() *executeTimeLogMiddleware {
+	return &executeTimeLogMiddleware{}
 }
 
 func (m *executeTimeLogMiddleware) GetName() string {
@@ -44,10 +33,6 @@ func (m *executeTimeLogMiddleware) PreHandle(_ *httpx.Request, _ *httpx.Response
 }
 
 func (m *executeTimeLogMiddleware) PostHandle(req *httpx.Request, resp *httpx.Response) {
-	if !m.enabled || resp.HasError() {
-		return
-	}
-
 	httpMethod := req.GetMethod()
 	requestUrl := req.GetRequestUrl(true)
 
@@ -57,7 +42,7 @@ func (m *executeTimeLogMiddleware) PostHandle(req *httpx.Request, resp *httpx.Re
 
 	elapsedTime := m.calcElapsedTime(req)
 	msg := fmt.Sprintf("%s %s, , total elapsed time: %s", httpMethod, requestUrl, elapsedTime)
-	m.logger.Info(msg)
+	logx.GetExecuteTimeLogLogger().Info(msg)
 	resp.WithExtraHeader("X-Response-Time", elapsedTime)
 }
 

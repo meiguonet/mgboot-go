@@ -38,6 +38,7 @@ func (h *unkownErrorHandler) HandleException(err error) httpx.ResponsePayload {
 	map1 := map[string]interface{}{
 		"code": 500,
 		"msg":  msg,
+		"data": nil,
 	}
 
 	return BuiltintResponse.NewJsonResponse(map1)
